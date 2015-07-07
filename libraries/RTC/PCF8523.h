@@ -85,6 +85,4 @@ private:
  uint8_t dtob(uint8_t decimal);
 };
 
-extern PCF8523 RTC;
-
 #endif

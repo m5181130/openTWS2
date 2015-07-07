@@ -140,5 +140,3 @@ uint8_t PCF8523::dtob(uint8_t decimal)
 {
   return ((decimal/10 * 16) + (decimal % 10));
 }
-
-PCF8523 RTC = PCF8523(); // create an instance for the user
