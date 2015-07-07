@@ -34,15 +34,15 @@ void loop() {
 
 void read_data() {
  uint16_t H_bits, T_bits; // ADC output for humidity and temperature
- float H_val, T_val; 
  uint8_t hi, lo;
  uint8_t stat;
+ float H_val, T_val;
 
  Wire.beginTransmission(HIH9131_I2C_ADDRESS);
  Wire.endTransmission();
- delay(50); // no delay causes stale data
+ delay(50); // no delay gives us stale data
 
- Wire.requestFrom(HIH9131_I2C_ADDRESS, 2);
+ Wire.requestFrom(HIH9131_I2C_ADDRESS, 4);
  hi = Wire.read();
  lo = Wire.read();
  stat = (hi >> 6) & 0b11;
@@ -54,12 +54,11 @@ void read_data() {
  T_bits = (((uint16_t)hi) << 8) | lo;
  T_bits >>= 2;
 
- H_val = (float) H_bits * 6.10e-3;
- T_val = (float) T_bits * 1.007e-2 - 40.0;
+ H_val = (float) H_bits * 6.10e-3;         // ~ H_bits * 100/(2^14-2)
+ T_val = (float) T_bits * 1.007e-2 - 40.0; // ~ T_bits * 165/(2^14-2) - 40
 
  portA.print(stat);      portA.print("\t");
  portA.print(H_val, 2);  portA.print("\t");
  portA.print(T_val, 2);  portA.print("\t");
- //Serial.print(T_bits);
  portA.println();
 }

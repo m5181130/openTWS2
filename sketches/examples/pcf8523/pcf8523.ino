@@ -2,16 +2,18 @@
  test for PCF8523.
  Datasheet
  http://www.nxp.com/documents/data_sheet/PCF8523.pdf
- ! PCF8523 provides interrupt function but it is not 
-   electrically wired to the chip (PCINT19).
+ ! PCF8523 provides interrupt functions but its INT/CLKOUT
+   pin is not electrically wired to the chip (PCINT19).
 **/
+
+#include <Wire.h>
+
+#define PCF8523_I2C_ADDRESS 0xD1
 
 #include <SoftwareSerial.h>
 #define RX_DEBUG_PIN A0
 #define TX_DEBUG_PIN A1
 SoftwareSerial portA(RX_DEBUG_PIN, TX_DEBUG_PIN);
-
-#include <Wire.h>
 
 // Register Control_1
 #define RTC_CAP_SEL 7
@@ -64,7 +66,7 @@ uint8_t RC_1 = _BV(RTC_CAP_SEL) * 0
              | _BV(RTC_SR)      * 0
              | _BV(RTC_12_24)   * 0
              | _BV(RTC_SIE)     * 0 // second interrupt disabled = 0
-             | _BV(RTC_AIE)     * 1 // alarm interrupt disabled = 0
+             | _BV(RTC_AIE)     * 0 // alarm interrupt disabled = 0
              | _BV(RTC_CIE)     * 0 ;
 
 uint8_t RC_2 = _BV(RTC_WTAF)  * 0 // no watchdog timer A interrupt generated = 0
@@ -121,11 +123,11 @@ void setup()
  p[14] = 0;
 
  // CLOCKOUT and timer registers
- p[15] = 0b00111011;
- p[16] = 0b00000010; // 1 Hz
- p[17] = 0x0A; // T_A[7:0] timer value 00 to FF
- p[18] = 0b00000010;
- p[19] = 0x03;
+ p[15] = 0b00111000;
+ p[16] = 0;
+ p[17] = 0; // timer value 00 to FF
+ p[18] = 0;
+ p[19] = 0;
 
  //set_date(p);
  delete[] p;
@@ -134,9 +136,6 @@ void setup()
 void loop()
 {
  print_date();
- //clear_AF();
- clear_CTAF();
- clear_CTBF();
  delay(1000);
 }
 
@@ -150,8 +149,6 @@ uint8_t dtob(uint8_t decimal) {
   uint8_t tens = decimal / 10;
   return (tens << 4) + ((decimal - tens * 10) & 0x0f);
 }
-
-#define PCF8523_I2C_ADDRESS 0xD1
 
 void set_date(uint8_t *p)
 {
@@ -230,61 +227,4 @@ void print_date()
 
  portA.println();
  delete[] p;
-}
-
-bool clear_AF() {
- bool flag = false;
- 
- Wire.beginTransmission(PCF8523_I2C_ADDRESS);  
- Wire.write(0x01);
- Wire.endTransmission();
- 
- Wire.requestFrom(PCF8523_I2C_ADDRESS, 1);
- flag = ((Wire.read() & _BV(RTC_AF) ) >> RTC_AF) & 0b1 ? true : false ; 
- 
- if (flag) {
-  Wire.beginTransmission(PCF8523_I2C_ADDRESS);
-  Wire.write(0x01);
-  Wire.write(0b01110000);
-  Wire.endTransmission();
- }
- return flag;
-}
-
-bool clear_CTAF() {
- bool flag = false;
- 
- Wire.beginTransmission(PCF8523_I2C_ADDRESS);  
- Wire.write(0x01);
- Wire.endTransmission();
- 
- Wire.requestFrom(PCF8523_I2C_ADDRESS, 1);
- flag = (Wire.read() & _BV(RTC_CTAF) ) ? true : false ; 
- 
- if (flag) {
-  Wire.beginTransmission(PCF8523_I2C_ADDRESS);
-  Wire.write(0x01);
-  Wire.write(0b00111000);
-  Wire.endTransmission();
- }
- return flag;
-}
-
-bool clear_CTBF() {
- bool flag = false;
- 
- Wire.beginTransmission(PCF8523_I2C_ADDRESS);  
- Wire.write(0x01);
- Wire.endTransmission();
- 
- Wire.requestFrom(PCF8523_I2C_ADDRESS, 1);
- flag = (Wire.read() & _BV(RTC_CTBF) ) ? true : false ; 
- 
- if (flag) {
-  Wire.beginTransmission(PCF8523_I2C_ADDRESS);
-  Wire.write(0x01);
-  Wire.write(0b01011000);
-  Wire.endTransmission();
- }
- return flag;
 }
