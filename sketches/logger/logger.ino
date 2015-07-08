@@ -65,9 +65,8 @@ void setup() {
  while (!parser.parse( nmea.read() )) ;
  nmea.requestClear();
  parser.crack_datetime(tm);
- rtc.set(makeTime(tm) + 9 * SECS_PER_HOUR);
  
- // set and enable timer A
+ rtc.set(makeTime(tm) + 9 * SECS_PER_HOUR);
  rtc.enableTmrA(0x01, RTC_TQM);
  
  bool err = false;
