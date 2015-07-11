@@ -9,15 +9,4 @@
 	* Relative humidity
 	* Pressure
 
-## Components
-
-* Atmega324p mcu
-* NV08C-CSM
-* PCF8523
-* HIH9131
-* TMP102
-* ADT7420
-* BMP180
-* microSD socket
-
 [openTWS]: https://github.com/sajinh/openTWS "GitHub"
