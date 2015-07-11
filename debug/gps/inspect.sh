@@ -2,7 +2,8 @@
 
 # $ ./inspect.sh ./data7/*.bin > results.dat 
 
-if [ $# -eq 0 ] then
+if [ $# -eq 0 ]
+ then
  echo "No arguments supplied"
  exit 1
 fi
