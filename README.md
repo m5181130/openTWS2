@@ -4,10 +4,10 @@
 
 * This project aims to build a tiny weather station that can record environmental variables including:
 
-1. GNSS data for remote sensing of the atmosphere
-2. Temperature
-3. Relative humidity
-4. Station pressure
+	GNSS data for remote sensing of the atmosphere
+	Temperature
+	Relative humidity
+	Station pressure
 
 
 
