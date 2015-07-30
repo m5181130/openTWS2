@@ -9,12 +9,9 @@ opentws2.build.mcu=atmega324p
 opentws2.upload.tool=avrdude
 opentws2.upload.maximum_size=32768
 
-# Burn Bootloader
+# Fuse settings
 #opentws2.bootloader.tool=avrdude
 #opentws2.bootloader.low_fuses=0xF7
 #opentws2.bootloader.high_fuses=0x99
 #opentws2.bootloader.extended_fuses=0xFF
-#opentws2.bootloader.unlock_bits=0x3F
-#opentws2.bootloader.lock_bits=0x0F
-#opentws2.bootloader.file=bt/ATmegaBOOT_168.hex
 ##############################################################
