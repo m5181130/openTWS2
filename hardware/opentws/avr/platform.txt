@@ -1,0 +1,7 @@
+
+# OpenTWS platform.
+# ------------------------------
+#
+
+name=OpenTWS Boards
+version=1.0.0
