@@ -18,26 +18,7 @@ HIH9131::HIH9131()
  : Sensor(HIH9131_I2C_ADDRESS)
 {}
 
-void HIH9131::read(double &H)
-{
- uint16_t H_bits;
- uint8_t hi, lo;
-
- Wire.beginTransmission(_addr);
- Wire.endTransmission();
- delay(55); // no delay gives us stale data
-
- Wire.requestFrom(_addr, 2);
- hi = Wire.read();
- lo = Wire.read();
-
- H_bits = ((uint16_t)hi << 8) | lo;
- H_bits &= 0x3FFF;
-
- H = (double)H_bits * 6.10e-3;
-}
-
-void HIH9131::read(double &H, double &T)
+void HIH9131::read(double &T,double &H)
 {
  uint16_t H_bits, T_bits;
  uint8_t hi0, lo0, hi1, lo1;
@@ -80,7 +61,6 @@ void TMP102::read(double &T)
  Wire.requestFrom(_addr, 2);
  hi = Wire.read();
  lo = Wire.read();
-
  T_bits = (((uint16_t)hi) << 8) | lo;
  T_bits >>= 4;
  sign = T_bits >> 11;
@@ -110,7 +90,6 @@ void ADT7420::read(double &T)
  Wire.requestFrom(_addr, 2); 
  hi = Wire.read();
  lo = Wire.read();
-
  T_bits = (((uint16_t)hi) << 8 ) | lo;
  T_bits >>= 3;
  sign = T_bits>>12;
@@ -121,134 +100,101 @@ void ADT7420::read(double &T)
   T = -double((~T_bits+1) & 0x0FFF) * 0.0625;
 }
 
-//--- BMP180 ----------------------------------
-BMP180::BMP180()
- : Sensor(BMP180_I2C_ADDRESS)
- ,_AC1(0),_AC2(0),_AC3(0),_B1(0),_B2(0),_MB(0),_MC(0),_MD(0)
- ,_AC4(0),_AC5(0),_AC6(0)
- ,_T_bits(0), _P_bits(0)
- ,_oss(0)
+//--- BMP280 ----------------------------------
+BMP280::BMP280()
+ : Sensor(BMP280_I2C_ADDRESS)
+ , dig_T2(0),dig_T3(0),dig_T4(0)
+ , dig_P2(0),dig_P3(0),dig_P4(0),dig_P5(0),dig_P6(0),dig_P7(0),dig_P8(0),dig_P9(0)
+ , osrs_p(0b001),osrs_t(0b001)
+ , mode(0b01)
 {}
 
-bool BMP180::begin()
+bool BMP280::begin()
 {
  Wire.begin();
  Wire.beginTransmission(_addr);
  if ( Wire.endTransmission() != 0 ) return false;
 
- if (
- !( readInt(0xAA, _AC1)
-  & readInt(0xAC, _AC2)
-  & readInt(0xAE, _AC3)
-  & readUInt(0xB0, _AC4)
-  & readUInt(0xB2, _AC5)
-  & readUInt(0xB4, _AC6)
-  & readInt(0xB6, _B1)
-  & readInt(0xB8, _B2)
-  & readInt(0xBA, _MB)
-  & readInt(0xBC, _MC)
-  & readInt(0xBE, _MD)
- )) return false;
+ readUInt(0x88, dig_T1) ;
+ readInt( 0x8A, dig_T2) ;
+ readInt( 0x8C, dig_T3) ;
+ readUInt(0x8E, dig_P1) ;
+ readInt( 0x90, dig_P2) ;
+ readInt( 0x92, dig_P3) ;
+ readInt( 0x94, dig_P4) ;
+ readInt( 0x96, dig_P5) ;
+ readInt( 0x98, dig_P6) ;
+ readInt( 0x9A, dig_P7) ;
+ readInt( 0x9C, dig_P8) ;
+ readInt( 0x9E, dig_P9) ;
 
  return true;
 }
 
-void BMP180::read(double &T)
+void BMP280::read(double &T, double &P)
 {
- int32_t T_val;
- uint8_t hi, lo;
- int32_t b5, x1, x2;
-
- // 1. start messurement
- Wire.beginTransmission(_addr);
- Wire.write(0xF4);
- Wire.write(0x2E);
- Wire.endTransmission();
- 
- _delay_ms(4.5);
- 
- // 2. set register
- Wire.beginTransmission(_addr);
- Wire.write(0xF6);
- Wire.endTransmission();
- 
- // 3. read values
- Wire.requestFrom(_addr, 2);
- hi = Wire.read();
- lo = Wire.read();
- _T_bits = ( (uint16_t)hi<<8 ) | lo;
-
- // 4. calculate temperature
- x1 = (_T_bits - _AC6) * _AC5 / pow(2, 15);
- x2 = _MC * pow(2,11) / (x1+_MD);
- b5 = x1 + x2;
- T_val = (b5+8)/16;
- 
- // 5. result
- T = double(T_val) / 10.0;
-}
-
-void BMP180::read(double &T, double &P)
-{
- int32_t P_val;
+ int32_t adc_T, adc_P;
  uint8_t hi, lo, xlo;
- int32_t b3, b5, b6, x1, x2, x3;
- uint32_t b4, b7;
 
- // 0. read temperature
- BMP180::read(T);
- 
  // 1. start messurement
  Wire.beginTransmission(_addr);
  Wire.write(0xF4);
- Wire.write(0x34 | (_oss << 6)); // 00 1 10100
- Wire.endTransmission();
+ Wire.write( (osrs_t << 5) | (osrs_p<<2) | mode );
+ Wire.endTransmission(); 
+ _delay_ms(6.4); // wait for measurement
  
- switch (_oss) {
-  case 0: _delay_ms(4.5); break;
-  case 1: _delay_ms(7.5); break;
-  case 2: _delay_ms(13.5); break;
-  case 3: _delay_ms(25.5); break;
- }
-
- // 2. set register
+ // 2. set register for reading ADC bits
  Wire.beginTransmission(_addr);
- Wire.write(0xF6);
+ Wire.write(0xF7);
  Wire.endTransmission();
 
  // 3. read values
- Wire.requestFrom(_addr, 2);
- hi = Wire.read();
- lo = Wire.read();
- xlo = Wire.read(); // <7:3>
+ Wire.requestFrom(_addr, 6);
+ hi  = Wire.read();
+ lo  = Wire.read();
+ xlo = Wire.read();
+ adc_P = (( (uint32_t)hi<<16 ) | ( (uint32_t)lo<<8 ) | xlo ) >> 4;
+ hi  = Wire.read();
+ lo  = Wire.read();
+ xlo = Wire.read();
+ adc_T = (( (uint32_t)hi<<16 ) | ( (uint32_t)lo<<8 ) | xlo ) >> 4;
 
- _P_bits = (( (int32_t)hi<<16 ) | ((uint16_t)lo<<8) | xlo ) >> (8-_oss);
-
- // 4. calculate pressure
- x1 = (_T_bits - _AC6) * _AC5 / pow(2, 15);
- x2 = _MC * pow(2,11) / (x1+_MD);
- b5 = x1 + x2;
- b6 = b5 - 4000;
- x1 = ( _B2 * ( pow(b6,2)/pow(2,12) )) / pow(2,11);
- x2 = _AC2*b6 / pow(2,11);
- x3 = x1 + x2;
- b3 = (( (_AC1*4+(uint32_t)x3) << _oss ) + 2 ) / 4;
- x1 = _AC3 * b6 / pow(2,13);
- x2 = (_B1 * ( pow(b6,2)/pow(2,12) ))/pow(2,16);
- x3 = ((x1+x2)+2)/4;
- b4 = _AC4 * (uint32_t)(x3+32768)/pow(2,15);
- b7 = ((uint32_t)_P_bits-b3) * (50000 >> _oss);
- P_val = (b7 < 0x80000000) ? (b7*2)/b4 : (b7/b4)*2;
- x1 = (P_val/256) * (P_val/256);
- x1 = (x1*3038)/pow(2,16);
- x2 = (-7537*P_val)/pow(2,16);
- P_val += (x1+x2+3791)/16; 
-
- // 5. result
- P = double(P_val) / 100.0;
+ // 4. calculate
+ T = (double)compensate_T(adc_T)/100.0;
+ P = (double)compensate_P(adc_P)/100.0;
 }
 
-bool BMP180::readUInt(char reg, uint16_t &coeff_bits)
+int32_t BMP280::compensate_T(int32_t adc_T)
+{
+ int32_t var1, var2, t;
+ var1 = ((((adc_T>>3)-((int32_t)dig_T1<<1)))*((int32_t)dig_T2))>> 11;
+ var2 = (((((adc_T>>4)-((int32_t)dig_T1))*((adc_T>>4)-((int32_t)dig_T1)))>>12)*((int32_t)dig_T3))>> 14;
+ t_fine = var1+var2;
+ t = (t_fine * 5 + 128) >> 8;
+
+ return t;
+}
+
+uint32_t BMP280::compensate_P(int32_t adc_P)
+{
+ int32_t var1, var2;
+ uint32_t p;
+ var1 = (((int32_t)t_fine)>>1) - (int32_t)64000;
+ var2 = (((var1>>2) * (var1>>2)) >> 11 ) * ((int32_t)dig_P6);
+ var2 = var2 + ((var1*((int32_t)dig_P5))<<1);
+ var2 = (var2>>2)+(((int32_t)dig_P4)<<16);
+ var1 = (((dig_P3 * (((var1>>2) * (var1>>2)) >> 13 )) >> 3) + ((((int32_t)dig_P2) * var1)>>1))>>18;
+ var1 =((((32768+var1))*((int32_t)dig_P1))>>15);
+ p = (((uint32_t)(((int32_t)1048576)-adc_P)-(var2>>12)))*3125;
+ p = (p < 0x80000000) ? (p << 1) / ((uint32_t)var1) : (p / (uint32_t)var1) * 2;
+ var1 = (((int32_t)dig_P9) * ((int32_t)(((p>>3) * (p>>3))>>13)))>>12;
+ var2 = (((int32_t)(p>>2)) * ((int32_t)dig_P8))>>13;
+ p = (uint32_t)((int32_t)p + ((var1 + var2 + dig_P7) >> 4));
+
+ return p;
+}
+
+void BMP280::readUInt(char reg, uint16_t &coeff_bits)
 {
  uint8_t hi, lo;
  Wire.beginTransmission(_addr);
@@ -256,15 +202,13 @@ bool BMP180::readUInt(char reg, uint16_t &coeff_bits)
  Wire.endTransmission();
 
  Wire.requestFrom(_addr, 2);
+ lo = Wire.read(); // ! LSB is first, different from BMP180
  hi = Wire.read();
- lo = Wire.read();
 
- coeff_bits = ( (uint16_t)hi<<8 ) | lo ;
-
- return ((coeff_bits == 0xFFFF) | coeff_bits==0 ) ? false : true;
+ coeff_bits = ( (uint16_t)hi<<8 ) | lo;
 }
 
-bool BMP180::readInt(char reg, int16_t &coeff_bits)
+void BMP280::readInt(char reg, int16_t &coeff_bits)
 {
  uint8_t hi, lo;
  Wire.beginTransmission(_addr);
@@ -272,10 +216,8 @@ bool BMP180::readInt(char reg, int16_t &coeff_bits)
  Wire.endTransmission();
 
  Wire.requestFrom(_addr, 2);
- hi = Wire.read();
  lo = Wire.read();
+ hi = Wire.read();
 
  coeff_bits = ( (int16_t)hi<<8 ) | lo ;
-
- return ((coeff_bits == 0xFFFF) | coeff_bits==0 ) ? false : true;
 }

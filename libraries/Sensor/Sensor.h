@@ -6,7 +6,7 @@
 #define HIH9131_I2C_ADDRESS 0x27
 #define TMP102_I2C_ADDRESS  0x48
 #define ADT7420_I2C_ADDRESS 0x4B
-#define BMP180_I2C_ADDRESS  0x77
+#define BMP280_I2C_ADDRESS  0x76
 
 //--- Base Class ----------------------------------
 class Sensor
@@ -14,7 +14,7 @@ class Sensor
 public:
  Sensor(uint8_t addr);
  bool begin();
- virtual void read(double &sensorValue) =0;
+ // virtual void read(double &sensorValue) =0;
 protected:
  uint8_t _addr;
 };
@@ -24,8 +24,7 @@ class HIH9131 : public Sensor
 {
 public:
  HIH9131();
- void read(double &H);
- void read(double &H, double &T);
+ void read(double &T,double &H);
 };
 
 //--- TMP102 ----------------------------------
@@ -44,22 +43,24 @@ public:
  void read(double &T);
 };
 
-//--- BMP180 ----------------------------------
-class BMP180 : public Sensor
+//--- BMP280 ----------------------------------
+class BMP280 : public Sensor
 {
 public:
- BMP180();
+ BMP280();
  bool begin();
- void read(double &T);
  void read(double &T, double &P);
 private:
- int16_t _AC1, _AC2, _AC3, _B1, _B2, _MB, _MC, _MD;
- uint16_t _AC4, _AC5, _AC6;
- int32_t _T_bits, _P_bits;
- uint8_t _oss;
+ int32_t compensate_T(int32_t adc_T);
+ uint32_t compensate_P(int32_t adc_P);
+ void readInt(char reg, int16_t &coeff_bits);
+ void readUInt(char reg, uint16_t &coeff_bits);
 
- bool readInt(char reg, int16_t &coeff_bits);
- bool readUInt(char reg, uint16_t &coeff_bits);
+ int16_t dig_T2,dig_T3,dig_T4,dig_P2,dig_P3,dig_P4,dig_P5,dig_P6,dig_P7,dig_P8,dig_P9; 
+ uint16_t dig_P1,dig_T1;
+ int32_t t_fine;
+ uint8_t osrs_p, osrs_t;
+ uint8_t mode;
 };
 
 #endif
