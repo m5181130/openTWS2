@@ -1,6 +1,4 @@
 #include <OpenTWS.h>
-#include <Time.h>
-#include <Wire.h>
 
 void setup() {
   pinMode(led1, OUTPUT);   

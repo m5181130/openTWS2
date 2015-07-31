@@ -19,6 +19,7 @@ BMP280 bmp280;
 PCF8523 rtc;
 
 tmElements_t tm;
+int utc_offset = 0;
 
 const uint8_t spiSpeed = SPI_HALF_SPEED;
 const int chipSelect = SD_CS;
@@ -29,7 +30,7 @@ char fname[13];
 int led = led1;
 int redled = led2;
 
-int sample_N = 5;
+int sample_N = 15;
 int n = 0;
 
 void setup() {
@@ -64,18 +65,23 @@ void setup() {
  // 2. receive current time from the gps.
  nmea.requestRMC();
  while (!parser.parse( nmea.read() )) ;
- parser.crack_datetime(tm);
+ parser.crack_datetime(tm); 
  
- // 3. clear all request
+ // 3. set time
+ rtc.set(makeTime(tm) + utc_offset * SECS_PER_HOUR);
+ 
+ // 4. clear all request
  nmea.requestClear();
  binr.requestClear();
  
- // 4. set time
- rtc.set(makeTime(tm) + 9 * SECS_PER_HOUR);
+ // connection is o.k.
+ digitalWrite(led, HIGH);
+ delay(50);
+ digitalWrite(led, LOW);
  
  // 5. set timer
  while (tm.Second % 30) rtc.read(tm);
- rtc.enableTmrA(0x1E, RTC_TQS); // 30 sec
+ rtc.enableTmrA(0x1E, RTC_TQS); // 30 sec interval
  
  // 6. start the logging cycle
  while (n < sample_N)
@@ -95,11 +101,8 @@ void setup() {
   n++;
  }
  
- while (true)
- {
-  digitalWrite(led, !digitalRead(led));
-  delay(300);
- }
+ // 7. end
+ blinkLED(led, 1);
 }
 
 void loop() {}
