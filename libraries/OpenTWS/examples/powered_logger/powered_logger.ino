@@ -30,7 +30,7 @@ char fname[13];
 int led = led1;
 int redled = led2;
 
-int sample_N = 15;
+int sample_N = 5;
 int n = 0;
 
 void setup() {
@@ -74,14 +74,14 @@ void setup() {
  nmea.requestClear();
  binr.requestClear();
  
+ // 5. set timer
+ while (tm.Second % 30) rtc.read(tm);
+ rtc.enableTmrA(0x1E, RTC_TQS); // 30 sec interval
+
  // connection is o.k.
  digitalWrite(led, HIGH);
  delay(50);
  digitalWrite(led, LOW);
- 
- // 5. set timer
- while (tm.Second % 30) rtc.read(tm);
- rtc.enableTmrA(0x1E, RTC_TQS); // 30 sec interval
  
  // 6. start the logging cycle
  while (n < sample_N)
@@ -114,8 +114,10 @@ bool log_sensor_val()
  double t0,t1,t2,t3;
  
  if (!rtc.read(tm)) return false;
+
+ if (!file.open("sensor.log", O_WRITE | O_APPEND | O_CREAT))
+  return false;
  
- file.open("sensor.log", O_WRITE | O_APPEND | O_CREAT);
  int i;
  for (i=0;i<5;i++)
  {
@@ -146,11 +148,10 @@ bool log_sensor_val()
 bool log_gps_data()
 {
  sprintf(fname,"%d.bin",n);
- file.open(fname, O_WRITE | O_TRUNC | O_CREAT);
+ if (!file.open(fname, O_WRITE | O_TRUNC | O_CREAT))
+  return false;
  
  // 1. clear buffer
- binr.requestClear();
- delay(100);
  binr.flush_input();
  
  // 2. request F5
@@ -164,7 +165,8 @@ bool log_gps_data()
  }
  rtc.clearTmrBFlag();
  rtc.disableTmrB();
-
+ binr.requestClear();
+ 
  // 4. error check and file close
  bool err = (file.fileSize() < 1024) ? true : false;
  file.close();
