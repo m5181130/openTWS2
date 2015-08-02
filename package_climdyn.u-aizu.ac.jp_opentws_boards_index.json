@@ -29,21 +29,8 @@
      ]
     }
    ],
-   "tools": [
-    {
-     "name": "avr-gcc",
-     "version": "4.8.1-arduino5",
-     "systems": [
-      {
-       "host": "x86_64-linux-gnu",
-       "url": "http://downloads.arduino.cc/tools/avr-gcc-4.8.1-arduino5-x86_64-pc-linux-gnu.tar.bz2",
-       "archiveFileName": "avr-gcc-4.8.1-arduino5-x86_64-pc-linux-gnu.tar.bz2",
-       "size": "27093036",
-       "checksum": "SHA-256:9054fcc174397a419ba56c4ce1bfcbcad275a6a080cc144905acc9b0351ee9cc"
-      }
-     ]
-    }
-   ]
+   "tools": []
+
   }
  ]
 }
