@@ -1,41 +1,36 @@
 {
-    "packages": [
-        {
-            "name": "openTWS2",
-            "maintainer": "m5181130",
-            "websiteURL": "http://m5181130.github.io/openTWS2",
-            "email": "m5181130@u-aizu.ac.jp",
-            "help": {
-                "online": "http://m5181130.github.io/openTWS2"
-            },
-            "platforms": [
-                {
-                    "name": "OpenTWS Boards",
-                    "architecture": "avr",
-                    "version": "1.1.0",
-                    "category": "Contributed",
-                    "url": "http://m5181130.github.io/openTWS2/board-index/boards/opentws-1.0.0.zip",
-                    "archiveFileName": "opentws-1.0.0.zip",
-                    "checksum": "SHA-256:4338ecc30d0dd4347f2ba6ef3470fc7722c586357aa445288a8fde7836533004",
-                    "size": "2874",
-                    "help": {
-                        "online": "http://m5181130.github.io/openTWS2"
-                    },
-                    "boards": [
-                        {
-                            "name": "OpenTWS2"
-                        }
-                    ],
-                    "toolsDependencies": [
-                        {
-                            "packager": "arduino",
-                            "name": "avr-gcc",
-                            "version": "4.8.1-arduino5"
-                        }
-                    ]
-                }
-            ],
-            "tools": []
-        }
-    ]
+ "packages": [
+  {
+   "name": "openTWS2",
+   "maintainer": "m5181130",
+   "websiteURL": "http://m5181130.github.io/openTWS2",
+   "email": "m5181130@u-aizu.ac.jp",
+   "help": {
+    "online": "http://m5181130.github.io/openTWS2"
+   },
+   "platforms": [
+    {
+     "name": "OpenTWS Boards",
+     "architecture": "avr",
+     "version": "1.0.0",
+     "category": "Contributed",
+     "url": "http://m5181130.github.io/openTWS2/board-index/boards/opentws-1.0.0.zip",
+     "archiveFileName": "opentws-1.0.0.zip",
+     "checksum": "SHA-256:28c97459f5997937f01940c9c9c2c26816c8b45c985f799faeb3d44e0db64c75",
+     "size": "2994",
+     "help": {
+      "online": "http://m5181130.github.io/openTWS2"
+     },
+     "boards": [
+      { "name": "OpenTWS2" }
+     ],
+     "toolsDependencies": [
+      { "packager": "arduino", "name": "avr-gcc", "version": "4.8.1-arduino5" }
+     ]
+    }
+   ],
+   "tools": [
+   ]
+  }
+ ]
 }
