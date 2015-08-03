@@ -1,10 +1,10 @@
 /**
 While uploading this sketch, disconnect SD card from controller board.
 Red LED indicates an error but 5 times of blinking is o.k. Set SD card
-and push reset button, once all error check is cleared green LED will
-emit a short blink. Sometimes it takes time to parse NMEA message for 
-current time around 30 second from my experience. Disconnect SD card
-to abort logging cycle.
+and push reset button, once all of error checks are cleared green LED 
+will emit a short blink. Sometimes it takes time to parse NMEA message
+for current time around 30 second from my experience. Disconnect SD 
+card to abort logging cycle.
 
 LED status and its Description
 red led blinks 1 time  | NMEA message is not comming
