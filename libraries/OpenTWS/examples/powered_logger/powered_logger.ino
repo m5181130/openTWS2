@@ -4,7 +4,7 @@ Red LED indicates an error but 5 times of blinking is o.k. Set SD card
 and push reset button, once all of error checks are cleared and NMEA
 message is parsed for current time, green LED will emit a short blink.
 Sometimes it takes time to parse NMEA message around 30 second from my
-experience. Green led is turned on while data is collected. Disconnect
+experience. Green led will be turned on while data collection. Disconnect
 SD card to abort logging cycle.
 
 LED status and its Description
