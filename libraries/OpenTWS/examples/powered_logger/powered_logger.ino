@@ -1,3 +1,20 @@
+/**
+While uploading this sketch, disconnect SD card from controller board.
+Red LED indicates an error but 5 times of blinking is o.k. Set SD card
+and push reset button, once all error check is cleared green LED will
+emit a short blink. Sometimes it takes time to parse NMEA message for 
+current time around 30 second from my experience. Disconnect SD card
+to abort logging cycle.
+
+LED status and its Description
+red led blinks 1 time  | NMEA message is not comming
+red led blinks 2 times | BINR message is not comming
+red led blinks 3 times | RTC module has problem
+red led blinks 4 times | Sensor modules have problem
+red led blinks 5 times | SD module has problem
+red led blinks 6 times | problem happened during logging process
+**/
+
 #include <OpenTWS.h>
 #include <GPS.h>
 #include <Parser.h>
@@ -30,7 +47,7 @@ char fname[13];
 int led = led1;
 int redled = led2;
 
-int sample_N = 5;
+int sample_N = 400000;
 int n = 0;
 
 void setup() {
