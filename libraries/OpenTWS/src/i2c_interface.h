@@ -1,12 +1,12 @@
-#ifndef I2C_PROTOCOL_h
-#define I2C_PROTOCOL_h
+#ifndef i2c_interface_h
+#define i2c_interface_h
 
 #include <Arduino.h>
 
-class I2C_PROTOCOL
+class I2CI
 {
 public:
- I2C_PROTOCOL(uint8_t addr);
+ I2CI(uint8_t addr);
  bool begin();
 
 protected:
