@@ -3,9 +3,9 @@ While uploading this sketch, disconnect SD card from controller board.
 Red LED indicates an error but 5 times of blinking is o.k. Set SD card
 and push reset button, once all of error checks are cleared and NMEA
 message is parsed for current time, green LED will emit a short blink.
-Sometimes it takes time to parse NMEA message around 30 second from my
-experience. Green led will be turned on while data collection. Disconnect
-SD card to abort logging cycle.
+Sometimes it takes time to parse NMEA message around 30 seconds. Green
+LED will be turned on while data collection. Disconnect SD card to abort
+logging cycle.
 
 LED status and its Description
 red led blinks 1 time  | NMEA message is not comming
@@ -85,8 +85,10 @@ void setup() {
  while (!parser.parse( nmea.read() )) ;
  parser.crack_datetime(tm); 
  
- // 3. set time
- rtc.set(makeTime(tm) + utc_offset * SECS_PER_HOUR);
+ // 3. set time and timer
+ rtc.write(tm, utc_offset);
+ rtc.setTmrA(30, RTC_TQS);
+ rtc.setTmrB( 6, RTC_TQS);
  
  // 4. clear all request
  nmea.requestClear();
@@ -94,7 +96,7 @@ void setup() {
  
  // 5. set timer
  while (tm.Second % 30) rtc.read(tm);
- rtc.enableTmrA(0x1E, RTC_TQS); // 30 sec interval
+ rtc.enableTmrA();
 
  // connection is o.k.
  digitalWrite(led, HIGH);
@@ -176,7 +178,7 @@ bool log_gps_data()
  binr.requestF5();
  
  // 3. read binr message
- rtc.enableTmrB(0x06, RTC_TQS);
+ rtc.enableTmrB();
  while ( !rtc.getTmrBFlag() ) {
   while ( binr.available() )
    file.write( binr.read() );

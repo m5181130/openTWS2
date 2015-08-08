@@ -13,12 +13,12 @@ bool I2CI::begin()
  return true;
 }
 
-void I2CI::readByte(uint8_t sreg, uint8_t data)
+void I2CI::readByte(uint8_t sreg, uint8_t &data)
 {
  readBytes(sreg, sreg, &data);
 }
 
-void I2CI::writeByte(uint8_t sreg, uint8_t data)
+void I2CI::writeByte(uint8_t sreg, uint8_t &data)
 {
  writeBytes(sreg, sreg, &data);
 }
@@ -31,7 +31,7 @@ void I2CI::readBytes(uint8_t sreg,uint8_t treg, uint8_t *data)
  Wire.write(sreg);
  Wire.endTransmission();
  
- Wire.requestFrom(_addr, len);
+ Wire.requestFrom(_addr, (uint8_t)len);
  while(Wire.available())
   data[i++] = Wire.read();
 }

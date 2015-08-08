@@ -1,132 +1,138 @@
 #include <Sensor.h>
 #include <Wire.h>
 
-Sensor::Sensor(uint8_t addr)
- : _addr(addr)
-{}
-
-bool Sensor::begin()
-{
- Wire.begin();
- Wire.beginTransmission(_addr);
- if ( Wire.endTransmission() != 0 ) return false;
- return true;
-}
-
 //--- HIH9131 ----------------------------------
 HIH9131::HIH9131()
- : Sensor(HIH9131_I2C_ADDRESS)
+ : I2CI(HIH9131_I2C_ADDRESS)
 {}
 
 void HIH9131::read(double &T,double &H)
 {
- uint16_t H_bits, T_bits;
- uint8_t hi0, lo0, hi1, lo1;
+ uint16_t adc_H, adc_T;
+ uint8_t data[4];
 
+ measurementRequest();
+ delay(55); // no stale data
+ dataFetch(data);
+
+ adc_H = ((uint16_t)data[0] << 8) | data[1];
+ adc_H &= 0x3FFF;
+ adc_T = ((uint16_t)data[2] << 8) | data[3];
+ adc_T >>= 2;
+
+ H = double(adc_H) * 6.10e-3;
+ T = double(adc_T) * 1.007e-2 - 40.0;
+}
+
+void HIH9131::measurementRequest()
+{
  Wire.beginTransmission(_addr);
  Wire.endTransmission();
- delay(55); // no delay gives us stale data
+}
 
- Wire.requestFrom(_addr, 4);
- hi0 = Wire.read();
- lo0 = Wire.read();
- hi1 = Wire.read();
- lo1 = Wire.read();
-
- H_bits = ((uint16_t)hi0 << 8) | lo0;
- H_bits &= 0x3FFF;
- T_bits = ((uint16_t)hi1 << 8) | lo1;
- T_bits >>= 2;
-
- H = double(H_bits) * 6.10e-3;
- T = double(T_bits) * 1.007e-2 - 40.0;
+void HIH9131::dataFetch(uint8_t *data)
+{
+ int i=0;
+ Wire.requestFrom(_addr, (uint8_t)4);
+ while(Wire.available())
+  data[i++] = Wire.read();
 }
 
 //--- TMP102 ----------------------------------
 TMP102::TMP102()
- : Sensor(TMP102_I2C_ADDRESS)
+ : I2CI(TMP102_I2C_ADDRESS)
 {}
 
 void TMP102::read(double &T)
 {
- uint16_t T_bits;
- uint8_t hi, lo, sign;
+ uint16_t adc_T;
+ uint8_t data[2];
+ uint8_t sign;
 
- // Set Pointer Register
- Wire.beginTransmission(_addr);
- Wire.write(0x00);
- Wire.endTransmission();
-
- // Data Fetch Request
- Wire.requestFrom(_addr, 2);
- hi = Wire.read();
- lo = Wire.read();
- T_bits = (((uint16_t)hi) << 8) | lo;
- T_bits >>= 4;
- sign = T_bits >> 11;
+ readBytes(0x00, 0x01, data);
+ adc_T = ((uint16_t)data[0] << 8) | data[1];
+ adc_T >>= 4;
+ sign = adc_T >> 11;
 
  if (sign == 0)
-  T = double(T_bits) * 0.0625;
+  T = double(adc_T) * 0.0625;
  else
-  T = -double((~T_bits+1) & 0x0FFF) * 0.0625;
+  T = -double((~adc_T+1) & 0x0FFF) * 0.0625;
 }
 
 //--- ADT7420 ----------------------------------
 ADT7420::ADT7420()
- : Sensor(ADT7420_I2C_ADDRESS)
+ : I2CI(ADT7420_I2C_ADDRESS)
 {}
 
 void ADT7420::read(double &T)
 {
- uint16_t T_bits;
- uint8_t hi,lo,sign;
+ uint16_t adc_T;
+ uint8_t data[2];
+ uint8_t sign;
 
- // Set Pointer Register
- Wire.beginTransmission(_addr);
- Wire.write(0x00);
- Wire.endTransmission();
-
- // Data Fetch Request
- Wire.requestFrom(_addr, 2); 
- hi = Wire.read();
- lo = Wire.read();
- T_bits = (((uint16_t)hi) << 8 ) | lo;
- T_bits >>= 3;
- sign = T_bits>>12;
+ readBytes(0x00, 0x01, data);
+ adc_T = ((uint16_t)data[0] << 8 ) | data[1];
+ adc_T >>= 3;
+ sign = adc_T>>12;
 
  if (sign == 0)
-  T = double(T_bits) * 0.0625;
+  T = double(adc_T) * 0.0625;
  else
-  T = -double((~T_bits+1) & 0x0FFF) * 0.0625;
+  T = -double((~adc_T+1) & 0x0FFF) * 0.0625;
 }
 
 //--- BMP280 ----------------------------------
 BMP280::BMP280()
- : Sensor(BMP280_I2C_ADDRESS)
- , dig_T2(0),dig_T3(0),dig_T4(0)
- , dig_P2(0),dig_P3(0),dig_P4(0),dig_P5(0),dig_P6(0),dig_P7(0),dig_P8(0),dig_P9(0)
- , osrs_p(0b001),osrs_t(0b001)
- , mode(0b01)
+ : I2CI(BMP280_I2C_ADDRESS)
+ , dig_T1(0)
+ , dig_T2(0)
+ , dig_T3(0)
+ , dig_P1(0)
+ , dig_P2(0)
+ , dig_P3(0)
+ , dig_P4(0)
+ , dig_P5(0)
+ , dig_P6(0)
+ , dig_P7(0)
+ , dig_P8(0)
+ , dig_P9(0)
+ , t_fine(0)
+ , ctrl_meas_reg(0)
 {}
 
 bool BMP280::begin()
 {
- Wire.begin();
- Wire.beginTransmission(_addr);
- if ( Wire.endTransmission() != 0 ) return false;
+ if ( !I2CI::begin() ) return false;
 
- readUInt(0x88, dig_T1) ;
- readInt( 0x8A, dig_T2) ;
- readInt( 0x8C, dig_T3) ;
- readUInt(0x8E, dig_P1) ;
- readInt( 0x90, dig_P2) ;
- readInt( 0x92, dig_P3) ;
- readInt( 0x94, dig_P4) ;
- readInt( 0x96, dig_P5) ;
- readInt( 0x98, dig_P6) ;
- readInt( 0x9A, dig_P7) ;
- readInt( 0x9C, dig_P8) ;
- readInt( 0x9E, dig_P9) ;
+// config
+ uint8_t osrs_t = 1;
+ uint8_t osrs_p = 1;
+ uint8_t mode = 3;
+ uint8_t t_sb = 5;
+ uint8_t filter = 0;
+ uint8_t spi3w_en = 0;
+ uint8_t config_reg = (t_sb << 5) | (filter << 2) | spi3w_en;
+ ctrl_meas_reg = (osrs_t << 5) | (osrs_p << 2) | mode;
+
+ writeByte(0xF5, config_reg);
+
+// param
+ uint8_t data[24];
+
+ readBytes(0x88, 0x9F, data);
+ dig_T1 = (data[1] << 8) | data[0];
+ dig_T2 = (data[3] << 8) | data[2];
+ dig_T3 = (data[5] << 8) | data[4];
+ dig_P1 = (data[7] << 8) | data[6];
+ dig_P2 = (data[9] << 8) | data[8];
+ dig_P3 = (data[11]<< 8) | data[10];
+ dig_P4 = (data[13]<< 8) | data[12];
+ dig_P5 = (data[15]<< 8) | data[14];
+ dig_P6 = (data[17]<< 8) | data[16];
+ dig_P7 = (data[19]<< 8) | data[18];
+ dig_P8 = (data[21]<< 8) | data[20];
+ dig_P9 = (data[23]<< 8) | data[22];
 
  return true;
 }
@@ -134,30 +140,16 @@ bool BMP280::begin()
 void BMP280::read(double &T, double &P)
 {
  int32_t adc_T, adc_P;
- uint8_t hi, lo, xlo;
+ uint8_t data[6];
 
  // 1. start messurement
- Wire.beginTransmission(_addr);
- Wire.write(0xF4);
- Wire.write( (osrs_t << 5) | (osrs_p<<2) | mode );
- Wire.endTransmission(); 
+ writeByte(0xF4, ctrl_meas_reg);
  _delay_ms(6.4); // wait for measurement
  
- // 2. set register for reading ADC bits
- Wire.beginTransmission(_addr);
- Wire.write(0xF7);
- Wire.endTransmission();
-
- // 3. read values
- Wire.requestFrom(_addr, 6);
- hi  = Wire.read();
- lo  = Wire.read();
- xlo = Wire.read();
- adc_P = (( (uint32_t)hi<<16 ) | ( (uint32_t)lo<<8 ) | xlo ) >> 4;
- hi  = Wire.read();
- lo  = Wire.read();
- xlo = Wire.read();
- adc_T = (( (uint32_t)hi<<16 ) | ( (uint32_t)lo<<8 ) | xlo ) >> 4;
+ // 2. read ADC bits
+ readBytes(0xF7, 0xFC, data);
+ adc_P = (( (uint32_t)data[0]<<16 ) | ( (uint32_t)data[1]<<8 ) | data[2] ) >> 4;
+ adc_T = (( (uint32_t)data[3]<<16 ) | ( (uint32_t)data[4]<<8 ) | data[5] ) >> 4;
 
  // 4. calculate
  T = (double)compensate_T(adc_T)/100.0;
@@ -192,32 +184,4 @@ uint32_t BMP280::compensate_P(int32_t adc_P)
  p = (uint32_t)((int32_t)p + ((var1 + var2 + dig_P7) >> 4));
 
  return p;
-}
-
-void BMP280::readUInt(char reg, uint16_t &coeff_bits)
-{
- uint8_t hi, lo;
- Wire.beginTransmission(_addr);
- Wire.write(reg);
- Wire.endTransmission();
-
- Wire.requestFrom(_addr, 2);
- lo = Wire.read(); // ! LSB is first, different from BMP180
- hi = Wire.read();
-
- coeff_bits = ( (uint16_t)hi<<8 ) | lo;
-}
-
-void BMP280::readInt(char reg, int16_t &coeff_bits)
-{
- uint8_t hi, lo;
- Wire.beginTransmission(_addr);
- Wire.write(reg);
- Wire.endTransmission();
-
- Wire.requestFrom(_addr, 2);
- lo = Wire.read();
- hi = Wire.read();
-
- coeff_bits = ( (int16_t)hi<<8 ) | lo ;
 }

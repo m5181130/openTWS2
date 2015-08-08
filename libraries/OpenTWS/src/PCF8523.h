@@ -2,6 +2,7 @@
 #define PCF8523_h
 
 #include <Time.h>
+#include "i2c_interface.h"
 
 #define PCF8523_I2C_ADDRESS 0x68
 
@@ -46,24 +47,26 @@
 #define RTC_TQMS 0x01 // 64 Hz
 #define RTC_TQUS 0x00 // 4.096 kHz
 
-class PCF8523
+class PCF8523 : public I2CI
 {
 public:
  PCF8523();
  bool begin();
 
 // time
- bool set(time_t t);
  bool read(tmElements_t &tm);
- bool write(tmElements_t &tm);
+ void write(tmElements_t &tm);
+ void write(tmElements_t &tm, uint8_t utc_offset);
 
 // timer
- bool enableTmrA(uint8_t val, uint8_t RTC_TQ) { 
-  setTimer(val, RTC_TQ, RTC_CTA); return enableTimer(RTC_CTA);
+ void setTmrA(uint8_t val, uint8_t rtc_tq) { 
+  setTimer(val, rtc_tq, RTC_CTA); 
  }
- bool enableTmrB(uint8_t val, uint8_t RTC_TQ) {
-  setTimer(val, RTC_TQ, RTC_CTB); return enableTimer(RTC_CTB);
+ void setTmrB(uint8_t val, uint8_t rtc_tq) {
+  setTimer(val, rtc_tq, RTC_CTB);
  }
+ void enableTmrA() { enableTimer(RTC_CTA); }
+ void enableTmrB() { enableTimer(RTC_CTB); }
  void disableTmrB() { disableTimer(RTC_CTB); }
  void clearTmrAFlag() { clearFlag(RTC_CTAF); }
  void clearTmrBFlag() { clearFlag(RTC_CTBF); }
@@ -71,18 +74,16 @@ public:
  bool getTmrBFlag() { return getFlag(RTC_CTBF); }
 
 private:
- uint8_t _addr;
- uint8_t _rc1, _rc2, _rc3;
- uint8_t _tmrctrl;
-
- bool enableTimer(uint8_t RTC_CT);
- void setTimer(uint8_t val, uint8_t RTC_TQ, uint8_t RTC_CT);
- void disableTimer(uint8_t RTC_CT);
- void clearFlag(uint8_t RTC_F);
- bool getFlag(uint8_t RTC_F);
+ void enableTimer(uint8_t rtc_ct);
+ void disableTimer(uint8_t rtc_ct);
+ void setTimer(uint8_t val, uint8_t rtc_tq, uint8_t rtc_ct);
+ void clearFlag(uint8_t rtc_f);
+ bool getFlag(uint8_t rtc_f);
 
  uint8_t btod(uint8_t bcd);
  uint8_t dtob(uint8_t decimal);
+
+ uint8_t _tmrctrl;
 };
 
 #endif

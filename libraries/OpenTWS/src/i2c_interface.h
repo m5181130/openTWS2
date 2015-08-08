@@ -10,8 +10,8 @@ public:
  bool begin();
 
 protected:
- void readByte(uint8_t sreg, uint8_t data);
- void writeByte(uint8_t sreg, uint8_t data);
+ void readByte(uint8_t sreg, uint8_t &data);
+ void writeByte(uint8_t sreg, uint8_t &data);
  void readBytes(uint8_t sreg, uint8_t treg, uint8_t *data);
  void writeBytes(uint8_t sreg, uint8_t treg, uint8_t *data);
 
