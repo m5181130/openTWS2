@@ -9,7 +9,7 @@
 	* Relative humidity
 	* Pressure
 
-# Install OpenTWS2 Firmware to Arduino IDE (version >= 1.6.4)
+# Install openTWS2 Firmware to Arduino IDE (version >= 1.6.4)
 ## Add Board Manager URLs
 
 * In Arduino IDE (version >= 1.6.4) goto File > Preference
