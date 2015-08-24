@@ -26,6 +26,24 @@
 #include <Arduino.h>
 #include "SdFatConfig.h"
 
+/* Fix bug ATMEGA324P to compatible with arduino SPI.h */
+#define SPCR _SFR_IO8(0x2C)
+#define SPR0 0
+#define SPR1 1
+#define CPHA 2
+#define CPOL 3
+#define MSTR 4
+#define DORD 5
+#define SPE  6
+#define SPIE 7
+
+#define SPSR _SFR_IO8(0x2D)
+#define SPI2X 0
+#define WCOL  6
+#define SPIF  7
+
+#define SPDR _SFR_IO8(0x2E)
+
 //------------------------------------------------------------------------------
 /**
  * \class SdSpiBase
