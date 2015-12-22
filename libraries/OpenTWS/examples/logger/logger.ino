@@ -10,29 +10,28 @@
 
 NMEA nmea(&Serial);
 BINR binr(&Serial1);
-Parser parser;
+Parser p;
 
 TMP102 tmp102;
 HIH9131 hih9131;
 ADT7420 adt7420;
-BMP180 bmp180;
+BMP280 bmp280;
 
 PCF8523 rtc;
+tmElements_t tm;
+int utc_offset = 0;
 
 const uint8_t spiSpeed = SPI_HALF_SPEED;
 const int chipSelect = SD_CS;
 SdFile file;
 SdFat sd;
+char fname[13];
 
 int led = led1;
 int redled = led2;
 
-int sample_N = 3; // 1008; //6 * 24 * 7; // for 7 days
+int sample_N = 400000; // = 2gb/4kb
 int n = 0;
-
-char fname[13];
-
-tmElements_t tm;
 
 void setup() {
  pinMode(led, OUTPUT);
@@ -56,54 +55,63 @@ void setup() {
   
  if (!adt7420.begin())
   blinkLED(redled, 4);
+ 
+ if (!bmp280.begin())
+  blinkLED(redled, 4);
   
  if (!sd.begin(chipSelect, spiSpeed))
   blinkLED(redled, 5);
  
  // receive the current time from the gps.
+ digitalWrite(led, HIGH); 
  nmea.requestRMC();
- while (!parser.parse( nmea.read() )) ;
+ while (!p.parse( nmea.read() )) ;
  nmea.requestClear();
- parser.crack_datetime(tm);
+ p.crack_datetime(tm);
+ digitalWrite(led, LOW);
+  
+ rtc.write(tm, utc_offset);
+ rtc.setTmrA( 1, RTC_TQM);
+ rtc.setTmrB( 5, RTC_TQS);
+
+ nmea.requestClear();
+ binr.requestClear();
+ nmea.requestSleep();
  
- rtc.set(makeTime(tm) + 9 * SECS_PER_HOUR);
- rtc.enableTmrA(0x01, RTC_TQM);
+ // while (tm.Second % 30) rtc.read(tm);
+ rtc.enableTmrA();
  
- bool err = false;
  while (n < sample_N)
  {
   /* there are intervals in real observation.
   while ( !rtc.getTmrAFlag() ) {
    digitalWrite(led, HIGH);
    delay(50);
-   digitalWrite(led, LOW);   
+   digitalWrite(led, LOW);
    enterSleep(); // sleep 8.0 sec
   }
   rtc.clearTmrAFlag();
   // */
-  
-  err |= !log_sensor_val();
-  err |= !log_gps_data();
-  
-  if (err)
+   
+  if (!log_sensor_val())
    blinkLED(redled, 6);
 
+  if (!log_gps_data())
+   blinkLED(redled, 6);
+  
   n++;
  }
  
- while (true)
- {
-  digitalWrite(led, !digitalRead(led));
-  delay(300);
- }
+ blinkLED(led, 1);
 }
 
 void loop() {}
 
 bool log_sensor_val()
 {
+ double p0;
  double h0;
- double t0,t1,t2;
+ double t0,t1,t2,t3;
  
  if (!rtc.read(tm)) return false;
  
@@ -111,21 +119,30 @@ bool log_sensor_val()
  int i;
  for (i=0;i<5;i++)
  {
-  hih9131.read(h0, t0);
-  tmp102.read(t1);
-  adt7420.read(t2);
+  tmp102.read(t0);
+  adt7420.read(t1);
+  hih9131.read(t2, h0);
+  bmp280.read(t3, p0);
+  
   file.print(n);  file.write(',');
-  file.print(t2); file.write(',');
-  file.print(t1); file.write(',');
   file.print(t0); file.write(',');
+  file.print(t1); file.write(',');
+  file.print(t2); file.write(',');
+  file.print(t3); file.write(',');
   file.print(h0); file.write(',');
+  file.print(p0); file.write(',');
+  file.print(tm.Month);  file.write(',');
+  file.print(tm.Day);    file.write(',');
   file.print(tm.Hour);   file.write(',');
   file.print(tm.Minute); file.write(',');
   file.print(tm.Second); file.write(',');
-  file.print(tm.Day);    file.write(',');
   file.println();
  }
  file.close();
+
+ tmp102.shutdown();
+ adt7420.shutdown();
+ bmp280.shutdown();
  
  return true;
 }
@@ -133,26 +150,30 @@ bool log_sensor_val()
 bool log_gps_data()
 {
  if (!nmea.requestWake()) return false;
- delay(60000); // ttff
+ delay(30000); // 30 sec for ttff
 
- binr.requestClear();
- binr.flush_input();
- binr.requestF5();
- 
  sprintf(fname,"%d.bin",n);
  file.open(fname, O_WRITE | O_TRUNC | O_CREAT);
- 
- rtc.enableTmrB(0x06, RTC_TQS);
+
+ binr.flush_input();
+ binr.requestF5();
+
+ digitalWrite(led, HIGH);
+ rtc.enableTmrB();
  while ( !rtc.getTmrBFlag() ) {
   while ( binr.available() )
    file.write( binr.read() );
+   binr.read();
  }
+ binr.requestClear();
  rtc.clearTmrBFlag();
  rtc.disableTmrB();
- // bool err = (file.fileSize() < 1024) ? true : false;
- file.close();
- // if (err) return false;
+ digitalWrite(led, LOW);
  
+ bool err = (file.fileSize() < 1024) ? true : false;
+ file.close();
+ 
+ if (err) return false;
  if (!nmea.requestSleep()) return false;
  
  return true;
